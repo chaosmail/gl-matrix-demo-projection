@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html ng-app="glMatrixDemo">
+<head>
+    <title>glMatrix Demo</title>
+    <script src="bower_components/angular/angular.min.js"></script>
+    <script src="bower_components/d3/d3.min.js"></script>
+    <script src="bower_components/gl-matrix/dist/gl-matrix-min.js"></script>
+
+    <style>
+        #scene-container svg {
+            border: 1px solid black;
+        }
+    </style>
+
+    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css"/>
+</head>
+<body ng-controller="MatrixController">
+
+<div class="container">
+
+    <div class="row">
+
+        <div class="col-lg-12">
+            <h1>glMatrix Demo</h1>
+
+            <div id="scene-container"></div>
+        </div>
+    </div>
+
+    <div class="row">
+
+        <div class="col-lg-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Scene Properties
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <tbody>
+                        <tr>
+                            <td>Width</td>
+                        </tr><tr>
+                            <td>
+                                <input class="form-control" type="number" ng-model="settings.SCENE_WIDTH"/>
+                            </td>
+                        </tr><tr>
+                            <td>Height</td>
+                        </tr><tr>
+                            <td>
+                                <input class="form-control" type="number" ng-model="settings.SCENE_HEIGHT"/>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Camera Extrinsic
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <tbody>
+                        <tr>
+                            <td >Camera Position</td>
+                        </tr><tr>
+                            <td class="form-inline">
+                                <input style="width:60px;" class="form-control" type="number" ng-model="settings.CAM_EX.cam_pos[0]"/>
+                                <input style="width:60px;" class="form-control" type="number" ng-model="settings.CAM_EX.cam_pos[1]"/>
+                                <input style="width:60px;" class="form-control" type="number" ng-model="settings.CAM_EX.cam_pos[2]"/>
+                            </td>
+                        </tr><tr>
+                            <td>Camera Look</td>
+                        </tr><tr>
+                            <td class="form-inline">
+                                <input style="width:60px;" class="form-control" type="number" ng-model="settings.CAM_EX.cam_look[0]"/>
+                                <input style="width:60px;" class="form-control" type="number" ng-model="settings.CAM_EX.cam_look[1]"/>
+                                <input style="width:60px;" class="form-control" type="number" ng-model="settings.CAM_EX.cam_look[2]"/>
+                            </td>
+                        </tr><tr>
+                            <td>Camera Up</td>
+                        </tr><tr>
+                            <td class="form-inline">
+                                <input style="width:60px;" class="form-control" type="number" ng-model="settings.CAM_EX.cam_up[0]"/>
+                                <input style="width:60px;" class="form-control" type="number" ng-model="settings.CAM_EX.cam_up[1]"/>
+                                <input style="width:60px;" class="form-control" type="number" ng-model="settings.CAM_EX.cam_up[2]"/>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Camera Intrinsic
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <tbody>
+                        <tr>
+                            <td colspan="2">Field of View</td>
+                        </tr><tr>
+                            <td class="form-inline">
+                                <input class="form-control" type="number" ng-model="settings.CAM_IN.field_of_view"/>
+                            </td>
+                        </tr><tr>
+                            <td>Aspect Ratio</td>
+                        </tr><tr>
+                            <td class="form-inline">
+                                <input class="form-control" type="number" ng-model="settings.CAM_IN.aspect_ratio"/>
+                            </td>
+                        </tr><tr>
+                            <td>Near/Far Plane</td>
+                        </tr><tr>
+                            <td class="form-inline">
+                                <input style="width:90px;" class="form-control" type="number" ng-model="settings.CAM_IN.near_plane"/>
+                                <input style="width:90px;" class="form-control" type="number" ng-model="settings.CAM_IN.far_plane"/>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Model Matrix
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>x</th>
+                            <th>y</th>
+                            <th>z</th>
+                            <th>w</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="col in [0,1,2,3]">
+                            <td>{{ settings.model[0*4+col] | number:2 }}</td>
+                            <td>{{ settings.model[1*4+col] | number:2 }}</td>
+                            <td>{{ settings.model[2*4+col] | number:2 }}</td>
+                            <td>{{ settings.model[3*4+col] | number:2 }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    View Matrix
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>x</th>
+                            <th>y</th>
+                            <th>z</th>
+                            <th>w</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="col in [0,1,2,3]">
+                            <td>{{ settings.view[0*4+col] | number:2 }}</td>
+                            <td>{{ settings.view[1*4+col] | number:2 }}</td>
+                            <td>{{ settings.view[2*4+col] | number:2 }}</td>
+                            <td>{{ settings.view[3*4+col] | number:2 }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Projection Matrix
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>x</th>
+                            <th>y</th>
+                            <th>z</th>
+                            <th>w</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="col in [0,1,2,3]">
+                            <td>{{ settings.projection[0*4+col] | number:2 }}</td>
+                            <td>{{ settings.projection[1*4+col] | number:2 }}</td>
+                            <td>{{ settings.projection[2*4+col] | number:2 }}</td>
+                            <td>{{ settings.projection[3*4+col] | number:2 }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Model View Projection Matrix
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>x</th>
+                            <th>y</th>
+                            <th>z</th>
+                            <th>w</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="col in [0,1,2,3]">
+                            <td>{{ settings.MVP[0*4+col] | number:2 }}</td>
+                            <td>{{ settings.MVP[1*4+col] | number:2 }}</td>
+                            <td>{{ settings.MVP[2*4+col] | number:2 }}</td>
+                            <td>{{ settings.MVP[3*4+col] | number:2 }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Vertices Object Space
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>x</th>
+                            <th>y</th>
+                            <th>z</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="vertex in vertices.object">
+                            <td>{{ vertex[0] | number:2 }}</td>
+                            <td>{{ vertex[1] | number:2 }}</td>
+                            <td>{{ vertex[2] | number:2 }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Vertices Model Transform
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>x</th>
+                            <th>y</th>
+                            <th>z</th>
+                            <th>w</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="vertex in vertices.world">
+                            <td>{{ vertex[0] | number:2 }}</td>
+                            <td>{{ vertex[1] | number:2 }}</td>
+                            <td>{{ vertex[2] | number:2 }}</td>
+                            <td>{{ vertex[3] | number:2 }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Vertices World Space
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>x</th>
+                            <th>y</th>
+                            <th>z</th>
+                            <th>w</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="vertex in vertices.camera">
+                            <td>{{ vertex[0] | number:2 }}</td>
+                            <td>{{ vertex[1] | number:2 }}</td>
+                            <td>{{ vertex[2] | number:2 }}</td>
+                            <td>{{ vertex[3] | number:2 }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Vertices Camera Space
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>x</th>
+                            <th>y</th>
+                            <th>z</th>
+                            <th>w</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="vertex in vertices.eye">
+                            <td>{{ vertex[0] | number:2 }}</td>
+                            <td>{{ vertex[1] | number:2 }}</td>
+                            <td>{{ vertex[2] | number:2 }}</td>
+                            <td>{{ vertex[3] | number:2 }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>

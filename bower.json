@@ -1,0 +1,33 @@
+{
+  "name": "glMatrixDemo",
+  "version": "0.0.1",
+  "authors": [
+    "Christoph Körner <office@chaosmail.at>"
+  ],
+  "description": "Demo for glMatrix and D3js for SVG",
+  "main": "index.html",
+  "moduleType": [
+    "es6"
+  ],
+  "keywords": [
+    "3D",
+    "D3",
+    "glMatrix",
+    "SVG"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/chaosmail/gl-matrix-demo",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "d3": "~3.4.6",
+    "gl-matrix": "~2.2.1",
+    "angular": "~1.2.16",
+    "bootstrap": "~3.1.1"
+  }
+}
