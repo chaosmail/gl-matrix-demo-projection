@@ -44,8 +44,37 @@ app.controller('MatrixController', function($scope) {
             cam_pos: vec3.fromValues(2.0, 2.0, 3.0),
             cam_look: vec3.fromValues(0.0, 0.0, 0.0),
             cam_up: vec3.fromValues(0.0, 1.0, 0.0)
-        }
+        },
+        model_translation: vec3.create(),
+        model_rotation:vec3.create()
     };
+
+    $scope.axis = {
+        object: [
+            vec3.fromValues(0.0,0.0,0.0),
+            vec3.fromValues(1.0,0.0,0.0),
+            vec3.fromValues(0.0,1.0,0.0),
+            vec3.fromValues(0.0,0.0,1.0)
+        ],
+        world: [
+            vec3.fromValues(0.0,0.0,0.0),
+            vec3.fromValues(1.0,0.0,0.0),
+            vec3.fromValues(0.0,1.0,0.0),
+            vec3.fromValues(0.0,0.0,1.0)
+        ],
+        camera: [
+            vec3.fromValues(0.0,0.0,0.0),
+            vec3.fromValues(1.0,0.0,0.0),
+            vec3.fromValues(0.0,1.0,0.0),
+            vec3.fromValues(0.0,0.0,1.0)
+        ],
+        screen: [
+            vec3.fromValues(0.0,0.0,0.0),
+            vec3.fromValues(1.0,0.0,0.0),
+            vec3.fromValues(0.0,1.0,0.0),
+            vec3.fromValues(0.0,0.0,1.0)
+        ]
+    }
 
     $scope.vertices = {
         object:
@@ -87,7 +116,7 @@ app.controller('MatrixController', function($scope) {
                 0, 0, 0
             ]),
         world: [],
-        eye: [],
+        screen: [],
         camera: []
     }
 
@@ -125,11 +154,37 @@ app.controller('MatrixController', function($scope) {
             mat4.identity($scope.settings.view);
         }
 
+        mat4.identity($scope.settings.model);
+
+        mat4.translate(
+            $scope.settings.model,
+            $scope.settings.model,
+            $scope.settings.model_translation
+        );
+
+        mat4.rotateX(
+            $scope.settings.model,
+            $scope.settings.model,
+            $scope.settings.model_rotation[0]/180.0*Math.PI
+        );
+
+        mat4.rotateY(
+            $scope.settings.model,
+            $scope.settings.model,
+            $scope.settings.model_rotation[1]/180.0*Math.PI
+        );
+
+        mat4.rotateZ(
+            $scope.settings.model,
+            $scope.settings.model,
+            $scope.settings.model_rotation[2]/180.0*Math.PI
+        );
+
         var model_view = mat4.create();
         mat4.multiply(
             model_view,
-            $scope.settings.model,
-            $scope.settings.view
+            $scope.settings.view,
+            $scope.settings.model
         );
 
         mat4.multiply(
@@ -138,30 +193,38 @@ app.controller('MatrixController', function($scope) {
             model_view
         );
 
+        for (var i = 0; i < 4; i++) {
+
+            $scope.axis.world[i] = vec4.create();
+            vec4.transformMat4($scope.axis.world[i], vec4from3($scope.axis.object[i]), $scope.settings.model);
+
+            $scope.axis.camera[i] = vec4.create();
+            vec4.transformMat4($scope.axis.camera[i], $scope.axis.world[i], $scope.settings.view);
+
+            $scope.axis.screen[i] = vec4.create();
+            vec4.transformMat4($scope.axis.screen[i], $scope.axis.camera[i], $scope.settings.projection);
+        }
+
         for (var i = 0; i < $scope.vertices.object.length; i ++) {
 
-            var v1 = vec4.create();
-            vec4.transformMat4(v1, vec4from3($scope.vertices.object[i]), $scope.settings.model);
-            $scope.vertices.world[i] = v1;
+            $scope.vertices.world[i] = vec4.create();
+            vec4.transformMat4($scope.vertices.world[i], vec4from3($scope.vertices.object[i]), $scope.settings.model);
 
-            var v2 = vec4.create();
-            vec4.transformMat4(v2, vec4from3($scope.vertices.object[i]), model_view);
-            $scope.vertices.camera[i] = v2;
+            $scope.vertices.camera[i] = vec4.create();
+            vec4.transformMat4($scope.vertices.camera[i], $scope.vertices.world[i], $scope.settings.view);
 
-            var v3 = vec4.create();
-            vec4.transformMat4(v3, vec4from3($scope.vertices.object[i]), $scope.settings.MVP);
-            $scope.vertices.eye[i] = v3;
+            $scope.vertices.screen[i] = vec4.create();
+            vec4.transformMat4($scope.vertices.screen[i], $scope.vertices.camera[i], $scope.settings.projection);
         }
     }
 
-    $scope.draw = function(v) {
+    $scope.draw = function() {
 
-        var vertex_mv = [];
         var vertices_mvp = [];
         var lines = [];
-            lines[0] = [];
+        var axis = [];
 
-        var vertices = SCENE.selectAll('circle').data(v);
+        var vertices = SCENE.selectAll('circle').data($scope.vertices.object);
 
         // Enter
         vertices.enter().append('circle');
@@ -172,7 +235,7 @@ app.controller('MatrixController', function($scope) {
 
                 vertices_mvp[i] = vec4.fromValues(vertex[0], vertex[1], vertex[2], 1.0);
 
-                // Model View Transform the vertex in eye coordinates
+                // Model View Transform the vertex in screen coordinates
                 vec4.transformMat4(vertices_mvp[i], vertices_mvp[i], $scope.settings.MVP);
 
                 if (i !== 0) {
@@ -193,15 +256,14 @@ app.controller('MatrixController', function($scope) {
         // Exit Elements
         vertices.exit().remove();
 
-        var edges = SCENE.selectAll('line').data(lines);
+        var edges = SCENE.selectAll('.edges').data(lines);
 
         // Enter
-        edges.enter().append('line');
+        edges.enter().append('line').attr('class','edges');
 
         // Enter and Update
         edges
             .attr("x1", function(vertex, i) {
-                console.log(vertex);
                 return offset(vertex[0][0])*$scope.settings.SCENE_WIDTH;
             })
             .attr("y1", function(vertex, i) {
@@ -218,10 +280,89 @@ app.controller('MatrixController', function($scope) {
 
         // Exit Elements
         edges.exit().remove();
+
+
+        axis = SCENE.selectAll('.axis-object').data($scope.axis.screen.slice(-3));
+
+        // Enter
+        axis.enter().append('line').attr('class','axis-object');
+
+        // Enter and Update
+        axis
+            .attr("x1", function(vertex, i) {
+                return offset($scope.axis.screen[0][0])*$scope.settings.SCENE_WIDTH;
+            })
+            .attr("y1", function(vertex, i) {
+                return (1 - offset($scope.axis.screen[0][1]))*$scope.settings.SCENE_HEIGHT;
+            })
+            .attr("x2", function(vertex, i) {
+                return offset(vertex[0])*$scope.settings.SCENE_WIDTH;
+            })
+            .attr("y2", function(vertex, i) {
+                return (1 - offset(vertex[1]))*$scope.settings.SCENE_HEIGHT;
+            })
+            .style("stroke", "red")
+            .style("stroke-width", 2)
+            .style("stroke-opacity", 0.6);
+
+        // Exit Elements
+        axis.exit().remove();
+
+        axis = SCENE.selectAll('.axis-world').data($scope.axis.world.slice(-3));
+
+        // Enter
+        axis.enter().append('line').attr('class','axis-world');
+
+        // Enter and Update
+        axis
+            .attr("x1", function(vertex, i) {
+                return offset($scope.axis.world[0][0])*$scope.settings.SCENE_WIDTH;
+            })
+            .attr("y1", function(vertex, i) {
+                return (1 - offset($scope.axis.world[0][1]))*$scope.settings.SCENE_HEIGHT;
+            })
+            .attr("x2", function(vertex, i) {
+                return offset(vertex[0])*$scope.settings.SCENE_WIDTH;
+            })
+            .attr("y2", function(vertex, i) {
+                return (1 - offset(vertex[1]))*$scope.settings.SCENE_HEIGHT;
+            })
+            .style("stroke", "green")
+            .style("stroke-width", 2)
+            .style("stroke-opacity", 0.6);
+
+        // Exit Elements
+        axis.exit().remove();
+
+        axis = SCENE.selectAll('.axis-camera').data($scope.axis.camera.slice(-3));
+
+        // Enter
+        axis.enter().append('line').attr('class','axis-camera');
+
+        // Enter and Update
+        axis
+            .attr("x1", function(vertex, i) {
+                return offset($scope.axis.camera[0][0])*$scope.settings.SCENE_WIDTH;
+            })
+            .attr("y1", function(vertex, i) {
+                return (1 - offset($scope.axis.camera[0][1]))*$scope.settings.SCENE_HEIGHT;
+            })
+            .attr("x2", function(vertex, i) {
+                return offset(vertex[0])*$scope.settings.SCENE_WIDTH;
+            })
+            .attr("y2", function(vertex, i) {
+                return (1 - offset(vertex[1]))*$scope.settings.SCENE_HEIGHT;
+            })
+            .style("stroke", "yellow")
+            .style("stroke-width", 2)
+            .style("stroke-opacity", 0.6);
+
+        // Exit Elements
+        axis.exit().remove();
     }
 
     $scope.$watch('settings', function() {
         $scope.init();
-        $scope.draw($scope.vertices.object);
+        $scope.draw();
     }, true);
 });
